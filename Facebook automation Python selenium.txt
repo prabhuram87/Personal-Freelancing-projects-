@@ -1,0 +1,91 @@
+                      ****** FACE BOOK AUTOMATION USING PYTHON SELENIUM ,ORACLE  AND TABLEAU*****
+					  
+/* THE BELOW CODE IS TO OPEN THE FACEBOOK TO WISH ANY NUMBER OF PEOPLE CELEBRATING BIRTHDAYS ON DAILY BASIS IN YOUR ACCOUNTS*/
+
+-- Used Python selenium webriver and Google chrome as browser to Open Facebook Login automatically 
+-- The code uses credentials provided to login into facebook 
+-- The url page that contains the birthday section is then accessed 
+-- Using xpath , the code identifies text area of the section with title as "Write a birthday wish on"
+-- For loop is used , since there might be more than one person celebrating birthday to wish them on same day .
+-- Used try and catch exception to handle exceptions , where it inputs this message in box for every person 'Many More Happy Returns of the Day!!!'.It quits if it encounters any excpetion or people not celebrating any birthdays at all.
+-- The code also takes the number of people celebrating birthdays on a day  to insert the date and count into oracle database (used oracle cx connector python package).
+-- Used Tableau to view it in the form of analytical trends to seee how many celebrate at day , month or year level granularity.
+-- Kindly let me know if any clarification - mail me - prabhuram87@gmail.com
+
+
+
+-- Importing Python packages like webdriver for  chrome browser related actions and oracle for Database related manipulations
+
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.keys import Keys
+from time import sleep
+import os
+import cx_Oracle
+
+chrome_options = Options()
+prefs = {"profile.default_content_setting_values.notifications" : 2}
+chrome_options.add_experimental_option("prefs",prefs)
+driver = webdriver.Chrome(executable_path='C:\\Users\\XXXXX\\Desktop\\chromedriver.exe',chrome_options=chrome_options)
+
+driver.get('https://www.facebook.com/login')
+print ("Opened facebook")
+sleep(1)
+
+username_box = driver.find_element_by_id('email')
+
+username_box.send_keys('abc@gmail.com')
+print ("Email Id entered")
+sleep(1)
+
+password_box = driver.find_element_by_id('pass')
+password_box.send_keys('*******')
+
+print ("Password entered")
+
+
+password_box.submit()
+print ("Password submitted")
+
+'''Intermediate code added'''
+
+driver.get('https://www.facebook.com/events/birthdays')
+'''status = driver.find_element_by_xpath("//textarea[@title='Write a birthday wish on']")'''
+
+status = driver.find_element_by_xpath("//textarea[@title[contains(.,'Write a birthday wish on')]]")
+displayStatus = status.is_displayed()
+
+
+cnt=0
+
+for displayStatus in  'TRUE':
+      
+     try: 
+      status.send_keys('Many More Happy Returns of the Day!!!')
+      sleep(2)
+      status.send_keys(Keys.ENTER)
+      sleep(5)
+      cnt=cnt+1 
+      status = driver.find_element_by_xpath("//textarea[@title[contains(.,'Write a birthday wish on')]]")
+      displayStatus = status.is_displayed()
+#try:     
+ #     status = driver.find_element_by_xpath("//textarea[@title[contains(.,'Write a birthday wish on')]]")
+      #element = WebDriverWait(driver, 10).until(driver.presence_of_element_located((driver.find_element_by_xpath, "//textarea[@title[contains(.,'Write a birthday wish on')]]")))
+
+     except:
+      driver.quit()
+     
+print(cnt)
+
+
+
+dsnStr = cx_Oracle.makedsn("XXXXXX-PC", "1521", "xe")
+con = cx_Oracle.connect(user='MYONLINEEDU', password='*******', dsn=dsnStr)
+print ("Database version " + con.version)
+
+stmt = "insert into fb_birthdays( bday,tcount ) values ( SYSDATE,"+str(cnt)+" )" 
+myCur = con.cursor()
+myCur.execute(stmt )
+
+
+con.commit()
